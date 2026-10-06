@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>リンクポータル</title>
+<style>
+  :root {
+    --bg: #05070A;
+    --cyan: #00F0FF;
+    --violet: #7000FF;
+    --surface: rgba(255,255,255,0.03);
+    --border: rgba(255,255,255,0.1);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: #fff;
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+  .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+  /* ambient */
+  .ambient { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 0; }
+  .blob { position: absolute; border-radius: 50%; filter: blur(120px); }
+  .blob.a { top: -160px; left: -160px; width: 500px; height: 500px; background: rgba(0,240,255,0.1); }
+  .blob.b { bottom: -160px; right: -160px; width: 500px; height: 500px; background: rgba(112,0,255,0.1); }
+  .wrap { position: relative; z-index: 1; }
+
+  /* header */
+  header {
+    position: sticky; top: 0; z-index: 30;
+    background: rgba(5,7,10,0.7); backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .header-inner { max-width: 1100px; margin: 0 auto; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand-icon { width: 36px; height: 36px; border-radius: 12px; background: linear-gradient(135deg, var(--cyan), var(--violet)); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--bg); }
+  .brand h1 { font-size: 18px; font-weight: 700; line-height: 1; }
+  .brand p { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255,255,255,0.4); margin-top: 2px; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; border: none; cursor: pointer; font-size: 14px; font-weight: 600; padding: 8px 14px; border-radius: 8px; transition: all .2s; font-family: inherit; }
+  .btn-cyan { background: rgba(0,240,255,0.9); color: var(--bg); }
+  .btn-cyan:hover { background: #5ff5ff; }
+  .btn-ghost { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.8); border: 1px solid var(--border); }
+  .btn-ghost:hover { background: rgba(255,255,255,0.1); color: #fff; }
+  .btn-violet { background: rgba(112,0,255,0.9); color: #fff; }
+  .btn-violet:hover { background: #8a33ff; }
+  .btn-danger { background: rgba(239,68,68,0.15); color: #fca5a5; }
+  .btn-danger:hover { background: rgba(239,68,68,0.25); }
+
+  /* hero */
+  .hero { max-width: 1100px; margin: 0 auto; padding: 64px 20px 40px; text-align: center; }
+  .hero h2 { font-size: clamp(36px, 6vw, 60px); font-weight: 800; line-height: 1.05; letter-spacing: -0.02em; }
+  .hero h2 .grad { display: block; margin-top: 8px; background: linear-gradient(90deg, #5ff5ff, #fff, #b794ff); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent; }
+  .hero p { margin-top: 20px; color: rgba(255,255,255,0.5); max-width: 560px; margin-left: auto; margin-right: auto; }
+
+  /* controls */
+  .controls { max-width: 1100px; margin: 0 auto; padding: 0 20px 24px; display: flex; flex-direction: column; gap: 12px; }
+  @media (min-width: 640px) { .controls { flex-direction: row; align-items: center; justify-content: space-between; } }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { padding: 6px 14px; border-radius: 999px; font-size: 14px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.6); transition: all .2s; }
+  .chip:hover { color: #fff; background: rgba(255,255,255,0.1); }
+  .chip.active { background: #fff; color: var(--bg); border-color: #fff; }
+  .search-wrap { position: relative; }
+  .search-wrap svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: rgba(255,255,255,0.4); }
+  .search { width: 100%; max-width: 260px; border-radius: 999px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); padding: 8px 16px 8px 36px; color: #fff; font-size: 14px; outline: none; font-family: inherit; transition: all .2s; }
+  .search:focus { border-color: rgba(0,240,255,0.4); box-shadow: 0 0 0 3px rgba(0,240,255,0.15); }
+
+  /* grid */
+  main { max-width: 1100px; margin: 0 auto; padding: 0 20px 80px; }
+  .grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
+  @media (min-width: 640px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (min-width: 1024px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+
+  .card { position: relative; border-radius: 16px; border: 1px solid var(--border); background: var(--surface); backdrop-filter: blur(16px); padding: 20px; transition: all .3s; }
+  .card:hover { transform: translateY(-4px); }
+  .card.cat-game:hover { border-color: rgba(0,240,255,0.6); box-shadow: 0 0 20px -5px rgba(0,240,255,0.5); }
+  .card.cat-service:hover { border-color: rgba(112,0,255,0.6); box-shadow: 0 0 20px -5px rgba(112,0,255,0.5); }
+  .card.cat-tool:hover { border-color: rgba(255,0,200,0.6); box-shadow: 0 0 20px -5px rgba(255,0,200,0.5); }
+  .card.cat-other:hover { border-color: rgba(125,211,252,0.6); box-shadow: 0 0 20px -5px rgba(125,211,252,0.5); }
+  .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .card-id { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .card-icon { flex-shrink: 0; width: 44px; height: 44px; border-radius: 12px; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; }
+  .card-icon svg { width: 20px; height: 20px; }
+  .cat-game .card-icon { color: #5ff5ff; }
+  .cat-service .card-icon { color: #b794ff; }
+  .cat-tool .card-icon { color: #f0abfc; }
+  .cat-other .card-icon { color: #7dd3fc; }
+  .card-title { font-weight: 600; font-size: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .card-cat { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; }
+  .cat-game .card-cat { color: #5ff5ff; }
+  .cat-service .card-cat { color: #b794ff; }
+  .cat-tool .card-cat { color: #f0abfc; }
+  .cat-other .card-cat { color: #7dd3fc; }
+  .card-actions { display: flex; gap: 4px; opacity: 0; transition: opacity .2s; }
+  .card:hover .card-actions { opacity: 1; }
+  .icon-btn { padding: 8px; border-radius: 8px; background: rgba(255,255,255,0.05); border: none; cursor: pointer; color: rgba(255,255,255,0.7); display: flex; transition: all .2s; }
+  .icon-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+  .icon-btn.del:hover { background: rgba(239,68,68,0.2); color: #fca5a5; }
+  .icon-btn svg { width: 16px; height: 16px; }
+  .card-desc { margin-top: 12px; font-size: 14px; color: rgba(255,255,255,0.6); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .card-link { margin-top: 16px; display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 500; color: rgba(255,255,255,0.8); text-decoration: none; }
+  .card-link:hover { color: #5ff5ff; }
+  .card-link svg { width: 14px; height: 14px; }
+
+  .empty { text-align: center; padding: 96px 0; color: rgba(255,255,255,0.4); }
+  .spinner { width: 32px; height: 32px; border: 2px solid rgba(255,255,255,0.2); border-top-color: var(--cyan); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 96px auto; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* footer */
+  footer { border-top: 1px solid rgba(255,255,255,0.05); padding: 40px 0; }
+  .footer-inner { max-width: 1100px; margin: 0 auto; padding: 0 20px; text-align: center; }
+  .footer-id { font-size: clamp(48px, 10vw, 80px); font-weight: 800; line-height: 1; color: transparent; -webkit-text-stroke: 1px rgba(255,255,255,0.08); }
+  .footer-sub { margin-top: 16px; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255,255,255,0.3); }
+
+  /* modal */
+  .modal-bg { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,0.8); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; padding: 16px; }
+  .modal { position: relative; width: 100%; max-width: 440px; border-radius: 16px; background: rgba(5,7,10,0.95); padding: 32px; }
+  .modal.cyan { border: 1px solid rgba(0,240,255,0.2); box-shadow: 0 0 60px -10px rgba(0,240,255,0.3); }
+  .modal.violet { border: 1px solid rgba(112,0,255,0.2); box-shadow: 0 0 60px -10px rgba(112,0,255,0.3); }
+  .modal-close { position: absolute; top: 16px; right: 16px; padding: 8px; border-radius: 8px; background: none; border: none; cursor: pointer; color: rgba(255,255,255,0.5); display: flex; }
+  .modal-close:hover { color: #fff; background: rgba(255,255,255,0.05); }
+  .modal-close svg { width: 20px; height: 20px; }
+  .modal-head { display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom: 24px; }
+  .modal-icon { width: 56px; height: 56px; border-radius: 16px; background: rgba(0,240,255,0.1); border: 1px solid rgba(0,240,255,0.3); display: flex; align-items: center; justify-content: center; margin-bottom: 16px; }
+  .modal-icon svg { width: 24px; height: 24px; color: #5ff5ff; }
+  .modal h3 { font-size: 20px; font-weight: 700; }
+  .modal-sub { font-size: 14px; color: rgba(255,255,255,0.5); margin-top: 4px; }
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6px; }
+  .modal.cyan .field label { color: rgba(0,240,255,0.7); }
+  .modal.violet .field label { color: rgba(183,148,255,0.7); }
+  .field input, .field textarea, .field select {
+    width: 100%; border-radius: 8px; background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+    padding: 10px 16px; color: #fff; font-size: 14px; outline: none; font-family: inherit; transition: all .2s;
+  }
+  .field input:focus, .field textarea:focus, .field select:focus { border-color: rgba(0,240,255,0.6); box-shadow: 0 0 0 3px rgba(0,240,255,0.15); }
+  .modal.violet .field input:focus, .modal.violet .field textarea:focus, .modal.violet .field select:focus { border-color: rgba(112,0,255,0.6); box-shadow: 0 0 0 3px rgba(112,0,255,0.15); }
+  .field textarea { resize: none; }
+  .field select option { background: var(--bg); }
+  .error { font-size: 14px; color: #f87171; text-align: center; margin-bottom: 12px; }
+  .modal-actions { display: flex; gap: 12px; margin-top: 8px; }
+  .modal-actions .btn { flex: 1; justify-content: center; padding: 10px; }
+</style>
+</head>
+<body>
+<div class="ambient"><div class="blob a"></div><div class="blob b"></div></div>
+<div class="wrap">
+
+  <header>
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-icon">⚡</div>
+        <div>
+          <h1>リンクポータル</h1>
+          <p class="mono">curated nexus</p>
+        </div>
+      </div>
+      <div id="header-actions"></div>
+    </div>
+  </header>
+
+  <section class="hero">
+    <h2>ゲームとサービスの<span class="grad">ディスカバリーポータル</span></h2>
+    <p>お気に入りのゲームや便利なサービスのURLをひとつに。厳選されたリンク集から新しいデジタル体験へ。</p>
+  </section>
+
+  <section class="controls">
+    <div class="chips" id="chips"></div>
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input class="search" id="search" type="text" placeholder="検索..." />
+    </div>
+  </section>
+
+  <main>
+    <div class="grid" id="grid"></div>
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-id">2025255</div>
+      <div class="footer-sub mono">link portal · curated nexus</div>
+    </div>
+  </footer>
+</div>
+
+<div id="modal-root"></div>
+
+<script>
+const ADMIN_ID = "2025255@mita-is.ed.jp";
+const ADMIN_PASSWORD = "gag";
+const STORAGE_KEY = "link_portal_links";
+const CATEGORIES = ["すべて", "ゲーム", "サービス", "ツール", "その他"];
+const CAT_CLASS = { "ゲーム": "game", "サービス": "service", "ツール": "tool", "その他": "other" };
+
+let state = {
+  links: [],
+  isAdmin: false,
+  activeCategory: "すべて",
+  search: "",
+  editingId: null
+};
+
+// ---- storage ----
+function loadLinks() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) { state.links = JSON.parse(raw); return; }
+  } catch(e) {}
+  // seed
+  state.links = [
+    { id: id(), title: "Minecraft", url: "https://www.minecraft.net", description: "ブロックを積み上げて冒険するサンドボックスゲーム", category: "ゲーム" },
+    { id: id(), title: "Google", url: "https://www.google.com", description: "検索エンジン", category: "サービス" },
+    { id: id(), title: "Canva", url: "https://www.canva.com", description: "オンラインデザインツール", category: "ツール" }
+  ];
+  saveLinks();
+}
+function saveLinks() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.links)); }
+function id() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
+// ---- icons ----
+const ICONS = {
+  game: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="11" x2="10" y2="11"/><line x1="8" y1="9" x2="8" y2="13"/><line x1="15" y1="12" x2="15.01" y2="12"/><line x1="18" y1="10" x2="18.01" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.412-1.412A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.416.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.152A4 4 0 0 0 17.32 5z"/></svg>',
+  service: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>',
+  tool: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.715a.5.5 0 0 1 0-.964L8.5 9.937A2 2 0 0 0 9.937 8.5l1.715-6.135a.5.5 0 0 1 .964 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.715a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.715 6.135a.5.5 0 0 1-.964 0z"/></svg>',
+  other: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>',
+  external: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>',
+  pencil: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.322 4.36a.5.5 0 0 0 .623.622l4.36-1.32a2 2 0 0 0 .83-.5z"/></svg>',
+  trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
+  lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+  shield: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>',
+  close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
+  plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5v14"/></svg>',
+  logout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
+  login: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 5 12 10 7"/><line x1="5" y1="12" x2="12" y2="12"/></svg>'
+};
+
+// ---- render ----
+function render() {
+  renderHeader();
+  renderChips();
+  renderGrid();
+}
+
+function renderHeader() {
+  const el = document.getElementById("header-actions");
+  if (state.isAdmin) {
+    el.innerHTML = `
+      <button class="btn btn-cyan" onclick="openForm()">${ICONS.plus}追加</button>
+      <button class="btn btn-ghost" onclick="logout()">${ICONS.logout}ログアウト</button>`;
+  } else {
+    el.innerHTML = `<button class="btn btn-ghost" onclick="openLogin()">${ICONS.login}管理者ログイン</button>`;
+  }
+}
+
+function renderChips() {
+  const el = document.getElementById("chips");
+  el.innerHTML = CATEGORIES.map(c =>
+    `<button class="chip ${state.activeCategory === c ? "active" : ""}" onclick="setCategory('${c}')">${c}</button>`
+  ).join("");
+}
+
+function renderGrid() {
+  const el = document.getElementById("grid");
+  const filtered = state.links.filter(l => {
+    const catOk = state.activeCategory === "すべて" || l.category === state.activeCategory;
+    const s = state.search.trim().toLowerCase();
+    const searchOk = !s || (l.title || "").toLowerCase().includes(s) || (l.description || "").toLowerCase().includes(s);
+    return catOk && searchOk;
+  });
+  if (filtered.length === 0) {
+    el.innerHTML = `<div class="empty">${state.links.length === 0 ? "まだリンクがありません。管理者ログインから追加してください。" : "該当するリンクが見つかりません。"}</div>`;
+    return;
+  }
+  el.innerHTML = filtered.map(l => {
+    const cls = CAT_CLASS[l.category] || "other";
+    const icon = ICONS[cls] || ICONS.other;
+    const actions = state.isAdmin ? `
+      <div class="card-actions">
+        <button class="icon-btn" onclick="openForm('${l.id}')" aria-label="編集">${ICONS.pencil}</button>
+        <button class="icon-btn del" onclick="deleteLink('${l.id}')" aria-label="削除">${ICONS.trash}</button>
+      </div>` : "";
+    const desc = l.description ? `<p class="card-desc">${esc(l.description)}</p>` : "";
+    return `
+      <article class="card cat-${cls}">
+        <div class="card-top">
+          <div class="card-id">
+            <div class="card-icon">${icon}</div>
+            <div>
+              <div class="card-title">${esc(l.title)}</div>
+              <span class="card-cat mono">${esc(l.category)}</span>
+            </div>
+          </div>
+          ${actions}
+        </div>
+        ${desc}
+        <a class="card-link" href__="${esc(l.url)}" target="_blank" rel="noopener noreferrer">アクセス ${ICONS.external}</a>
+      </article>`;
+  }).join("");
+}
+
+function esc(s) {
+  return String(s || "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+}
+
+// ---- actions ----
+function setCategory(c) { state.activeCategory = c; renderChips(); renderGrid(); }
+document.getElementById("search").addEventListener("input", e => { state.search = e.target.value; renderGrid(); });
+
+function logout() { state.isAdmin = false; render(); }
+
+function openLogin() {
+  const root = document.getElementById("modal-root");
+  root.innerHTML = `
+    <div class="modal-bg" onclick="if(event.target===this)closeModal()">
+      <div class="modal cyan">
+        <button class="modal-close" onclick="closeModal()" aria-label="閉じる">${ICONS.close}</button>
+        <div class="modal-head">
+          <div class="modal-icon">${ICONS.lock}</div>
+          <h3>管理者アクセス</h3>
+          <p class="modal-sub">編集にはIDとパスワードが必要です</p>
+        </div>
+        <form onsubmit="return submitLogin(event)">
+          <div class="field">
+            <label>ID</label>
+            <input type="text" id="login-id" autocomplete="username" placeholder="IDを入力" />
+          </div>
+          <div class="field">
+            <label>パスワード</label>
+            <input type="password" id="login-pw" autocomplete="current-password" placeholder="パスワードを入力" />
+          </div>
+          <div class="error" id="login-err"></div>
+          <button class="btn btn-cyan" type="submit" style="width:100%;justify-content:center;padding:10px">${ICONS.shield}ロック解除</button>
+        </form>
+      </div>
+    </div>`;
+  setTimeout(() => document.getElementById("login-id").focus(), 50);
+}
+
+function submitLogin(e) {
+  e.preventDefault();
+  const idVal = document.getElementById("login-id").value.trim();
+  const pwVal = document.getElementById("login-pw").value;
+  if (idVal === ADMIN_ID && pwVal === ADMIN_PASSWORD) {
+    state.isAdmin = true;
+    closeModal();
+    render();
+  } else {
+    document.getElementById("login-err").textContent = "IDまたはパスワードが正しくありません";
+  }
+  return false;
+}
+
+function openForm(linkId) {
+  state.editingId = linkId || null;
+  const link = linkId ? state.links.find(l => l.id === linkId) : null;
+  const root = document.getElementById("modal-root");
+  root.innerHTML = `
+    <div class="modal-bg" onclick="if(event.target===this)closeModal()">
+      <div class="modal violet">
+        <button class="modal-close" onclick="closeModal()" aria-label="閉じる">${ICONS.close}</button>
+        <h3>${link ? "リンクを編集" : "リンクを追加"}</h3>
+        <form onsubmit="return submitForm(event)" style="margin-top:24px">
+          <div class="field">
+            <label>タイトル</label>
+            <input type="text" id="f-title" required placeholder="例: Minecraft" value="${link ? esc(link.title) : ""}" />
+          </div>
+          <div class="field">
+            <label>URL</label>
+            <input type="text" id="f-url" required placeholder="https://example.com" value="${link ? esc(link.url) : ""}" />
+          </div>
+          <div class="field">
+            <label>説明</label>
+            <textarea id="f-desc" rows="2" placeholder="簡単な説明（任意）">${link ? esc(link.description) : ""}</textarea>
+          </div>
+          <div class="field">
+            <label>カテゴリ</label>
+            <select id="f-cat">
+              ${["ゲーム","サービス","ツール","その他"].map(c => `<option value="${c}" ${link && link.category===c ? "selected" : ""}>${c}</option>`).join("")}
+            </select>
+          </div>
+          <div class="modal-actions">
+            <button class="btn btn-ghost" type="button" onclick="closeModal()">キャンセル</button>
+            <button class="btn btn-violet" type="submit">${link ? "更新" : "追加"}</button>
+          </div>
+        </form>
+      </div>
+    </div>`;
+  setTimeout(() => document.getElementById("f-title").focus(), 50);
+}
+
+function submitForm(e) {
+  e.preventDefault();
+  const title = document.getElementById("f-title").value.trim();
+  let url = document.getElementById("f-url").value.trim();
+  const description = document.getElementById("f-desc").value.trim();
+  const category = document.getElementById("f-cat").value;
+  if (!title || !url) return false;
+  if (!/^https?:\/\//i.test(url)) url = "https://" + url;
+  if (state.editingId) {
+    state.links = state.links.map(l => l.id === state.editingId ? { ...l, title, url, description, category } : l);
+  } else {
+    state.links.unshift({ id: id(), title, url, description, category });
+  }
+  saveLinks();
+  closeModal();
+  renderGrid();
+  return false;
+}
+
+function deleteLink(linkId) {
+  const link = state.links.find(l => l.id === linkId);
+  if (!link) return;
+  if (!confirm(`「${link.title}」を削除しますか？`)) return;
+  state.links = state.links.filter(l => l.id !== linkId);
+  saveLinks();
+  renderGrid();
+}
+
+function closeModal() {
+  document.getElementById("modal-root").innerHTML = "";
+  state.editingId = null;
+}
+
+// ---- init ----
+loadLinks();
+render();
+</script>
+</body>
+</html>
